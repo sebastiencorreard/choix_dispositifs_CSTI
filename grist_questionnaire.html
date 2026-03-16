@@ -45,6 +45,21 @@
             font-size: 14px;
         }
         
+        .selection-summary {
+            background: #edf2f7;
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 15px;
+            color: #2d3748;
+            text-align: center;
+            font-weight: 600;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
         .step {
             display: none;
             animation: fadeIn 0.3s ease-in;
@@ -254,6 +269,8 @@
             <h1>🎯 Trouvez votre projet</h1>
             <p class="subtitle">Répondez à quelques questions pour découvrir les projets adaptés</p>
             
+            <div class="selection-summary" id="summary">Commencez par sélectionner votre public</div>
+            
             <div class="progress">
                 <div class="progress-dot active" id="dot1"></div>
                 <div class="progress-dot" id="dot2"></div>
@@ -264,29 +281,18 @@
             <div class="step active" id="step1">
                 <div class="question">Quel est votre public ?</div>
                 <div class="options" id="publicOptions"></div>
-                <div class="buttons">
-                    <button class="btn-primary" id="next1" disabled>Suivant →</button>
-                </div>
             </div>
             
             <!-- Étape 2 : Type de dispositif -->
             <div class="step" id="step2">
                 <div class="question">Quel type de dispositif recherchez-vous ?</div>
                 <div class="options" id="typeOptions"></div>
-                <div class="buttons">
-                    <button class="btn-secondary" id="back2">← Retour</button>
-                    <button class="btn-primary" id="next2" disabled>Suivant →</button>
-                </div>
             </div>
             
             <!-- Étape 3 : Discipline -->
             <div class="step" id="step3">
                 <div class="question">Quelle discipline vous intéresse ?</div>
                 <div class="options" id="disciplineOptions"></div>
-                <div class="buttons">
-                    <button class="btn-secondary" id="back3">← Retour</button>
-                    <button class="btn-primary" id="submit">Voir les résultats 🔍</button>
-                </div>
             </div>
             
             <!-- Résultats -->
@@ -341,15 +347,40 @@
             element.classList.add('selected');
             selections[key] = value;
             
-            // Activer le bouton suivant
-            if (key === 'public') document.getElementById('next1').disabled = false;
-            if (key === 'type') {
-                document.getElementById('next2').disabled = false;
-                // Si ce n'est pas un concours, passer directement aux résultats
-                if (value.toLowerCase() !== 'concours') {
-                    selections.discipline = null; // Réinitialiser la discipline
+            // Mettre à jour le récapitulatif
+            updateSummary();
+            
+            // Progression automatique
+            if (key === 'public') {
+                setTimeout(() => showStep(2), 300);
+            } else if (key === 'type') {
+                // Si concours, aller à l'étape 3, sinon afficher les résultats
+                if (value.toLowerCase() === 'concours') {
+                    setTimeout(() => showStep(3), 300);
+                } else {
+                    setTimeout(() => showResults(), 300);
                 }
+            } else if (key === 'discipline') {
+                setTimeout(() => showResults(), 300);
             }
+        }
+        
+        function updateSummary() {
+            const summary = document.getElementById('summary');
+            let text = '';
+            
+            if (selections.type && selections.public) {
+                text = `${selections.type} pour ${selections.public}`;
+                if (selections.discipline) {
+                    text += ` en ${selections.discipline}`;
+                }
+            } else if (selections.public) {
+                text = `Public : ${selections.public}`;
+            } else {
+                text = 'Commencez par sélectionner votre public';
+            }
+            
+            summary.textContent = text;
         }
         
         function showStep(stepNum) {
@@ -458,9 +489,8 @@
         function restart() {
             selections = { public: null, type: null, discipline: null };
             document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
-            document.getElementById('next1').disabled = true;
-            document.getElementById('next2').disabled = true;
             document.getElementById('results').classList.remove('active');
+            updateSummary();
             showStep(1);
         }
         
@@ -469,19 +499,7 @@
         createOptions(document.getElementById('typeOptions'), types, 'type');
         createOptions(document.getElementById('disciplineOptions'), disciplines, 'discipline');
         
-        // Gestionnaires d'événements
-        document.getElementById('next1').onclick = () => showStep(2);
-        document.getElementById('next2').onclick = () => {
-            // Si concours, aller à l'étape 3, sinon afficher directement les résultats
-            if (selections.type && selections.type.toLowerCase() === 'concours') {
-                showStep(3);
-            } else {
-                showResults();
-            }
-        };
-        document.getElementById('back2').onclick = () => showStep(1);
-        document.getElementById('back3').onclick = () => showStep(2);
-        document.getElementById('submit').onclick = showResults;
+        // Gestionnaire pour le bouton restart
         document.getElementById('restart').onclick = restart;
     </script>
 </body>
