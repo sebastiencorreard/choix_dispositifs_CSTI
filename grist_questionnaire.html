@@ -327,18 +327,73 @@
             allData = records;
             console.log('✅ Données chargées:', records.length, 'projets');
             console.log('📋 Exemple de données:', records[0]);
+            
+            // Initialiser les options avec les données
+            refreshOptions(1);
         });
         
-        // Créer les options
+        // Créer les options (dynamiques selon les données disponibles)
         function createOptions(container, options, key) {
             container.innerHTML = '';
-            options.forEach(option => {
+            
+            // Filtrer les options qui ont des résultats
+            const availableOptions = options.filter(option => {
+                // Simuler la sélection pour voir s'il y a des résultats
+                const tempSelections = { ...selections, [key]: option };
+                return hasResults(tempSelections);
+            });
+            
+            if (availableOptions.length === 0) {
+                container.innerHTML = '<div style="color: #718096; text-align: center; padding: 20px;">Aucune option disponible</div>';
+                return;
+            }
+            
+            availableOptions.forEach(option => {
                 const div = document.createElement('div');
                 div.className = 'option';
                 div.textContent = option;
                 div.onclick = () => selectOption(div, option, key, container);
                 container.appendChild(div);
             });
+        }
+        
+        // Vérifier s'il y a des résultats pour une sélection donnée
+        function hasResults(testSelections) {
+            return allData.some(record => {
+                const contains = (fieldValue, searchValue) => {
+                    if (!searchValue) return true;
+                    if (!fieldValue) return false;
+                    
+                    const normalize = (str) => str.toString().trim().toLowerCase();
+                    const searchNorm = normalize(searchValue);
+                    
+                    if (Array.isArray(fieldValue)) {
+                        return fieldValue.some(val => normalize(val) === searchNorm);
+                    }
+                    
+                    return normalize(fieldValue) === searchNorm;
+                };
+                
+                const matchPublic = contains(record.Public, testSelections.public);
+                const matchType = contains(record.Type_dispositif, testSelections.type);
+                
+                const matchDiscipline = testSelections.type && testSelections.type.toLowerCase().trim() === 'concours'
+                    ? contains(record.Discipline, testSelections.discipline)
+                    : true;
+                
+                return matchPublic && matchType && matchDiscipline;
+            });
+        }
+        
+        // Rafraîchir les options d'une étape donnée
+        function refreshOptions(step) {
+            if (step === 1) {
+                createOptions(document.getElementById('publicOptions'), publics, 'public');
+            } else if (step === 2) {
+                createOptions(document.getElementById('typeOptions'), types, 'type');
+            } else if (step === 3) {
+                createOptions(document.getElementById('disciplineOptions'), disciplines, 'discipline');
+            }
         }
         
         function selectOption(element, value, key, container) {
@@ -352,10 +407,12 @@
             
             // Progression automatique
             if (key === 'public') {
+                refreshOptions(2); // Rafraîchir les types de dispositifs
                 setTimeout(() => showStep(2), 300);
             } else if (key === 'type') {
                 // Si concours, aller à l'étape 3, sinon afficher les résultats
                 if (value.toLowerCase() === 'concours') {
+                    refreshOptions(3); // Rafraîchir les disciplines
                     setTimeout(() => showStep(3), 300);
                 } else {
                     setTimeout(() => showResults(), 300);
@@ -493,11 +550,6 @@
             updateSummary();
             showStep(1);
         }
-        
-        // Initialiser les options
-        createOptions(document.getElementById('publicOptions'), publics, 'public');
-        createOptions(document.getElementById('typeOptions'), types, 'type');
-        createOptions(document.getElementById('disciplineOptions'), disciplines, 'discipline');
         
         // Gestionnaire pour le bouton restart
         document.getElementById('restart').onclick = restart;
