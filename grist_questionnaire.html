@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trouvez votre projet</title>
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #1a202c;
+            font-size: 28px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #718096;
+            text-align: center;
+            margin-bottom: 32px;
+            font-size: 14px;
+        }
+        
+        .step {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .step.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .question {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+        
+        .options {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .option {
+            padding: 16px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+            font-size: 15px;
+            color: #2d3748;
+            text-align: left;
+        }
+        
+        .option:hover {
+            border-color: #667eea;
+            background: #f7fafc;
+            transform: translateX(4px);
+        }
+        
+        .option.selected {
+            border-color: #667eea;
+            background: #edf2f7;
+            font-weight: 600;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+        
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+        
+        .results {
+            display: none;
+        }
+        
+        .results.active {
+            display: block;
+            animation: fadeIn 0.4s ease-in;
+        }
+        
+        .result-count {
+            background: #edf2f7;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #4a5568;
+        }
+        
+        .project-card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+        
+        .project-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .project-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 12px;
+        }
+        
+        .project-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            background: white;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #667eea;
+            border: 1px solid #667eea;
+        }
+        
+        .project-description {
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        
+        .project-link {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .project-link:hover {
+            text-decoration: underline;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #718096;
+        }
+        
+        .no-results-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .progress {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            justify-content: center;
+        }
+        
+        .progress-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            transition: all 0.3s;
+        }
+        
+        .progress-dot.active {
+            background: #667eea;
+            width: 24px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🎯 Trouvez votre projet</h1>
+            <p class="subtitle">Répondez à quelques questions pour découvrir les projets adaptés</p>
+            
+            <div class="progress">
+                <div class="progress-dot active" id="dot1"></div>
+                <div class="progress-dot" id="dot2"></div>
+                <div class="progress-dot" id="dot3"></div>
+            </div>
+            
+            <!-- Étape 1 : Public -->
+            <div class="step active" id="step1">
+                <div class="question">Quel est votre public ?</div>
+                <div class="options" id="publicOptions"></div>
+                <div class="buttons">
+                    <button class="btn-primary" id="next1" disabled>Suivant →</button>
+                </div>
+            </div>
+            
+            <!-- Étape 2 : Type de dispositif -->
+            <div class="step" id="step2">
+                <div class="question">Quel type de dispositif recherchez-vous ?</div>
+                <div class="options" id="typeOptions"></div>
+                <div class="buttons">
+                    <button class="btn-secondary" id="back2">← Retour</button>
+                    <button class="btn-primary" id="next2" disabled>Suivant →</button>
+                </div>
+            </div>
+            
+            <!-- Étape 3 : Discipline -->
+            <div class="step" id="step3">
+                <div class="question">Quelle discipline vous intéresse ?</div>
+                <div class="options" id="disciplineOptions"></div>
+                <div class="buttons">
+                    <button class="btn-secondary" id="back3">← Retour</button>
+                    <button class="btn-primary" id="submit">Voir les résultats 🔍</button>
+                </div>
+            </div>
+            
+            <!-- Résultats -->
+            <div class="results" id="results">
+                <div class="result-count" id="resultCount"></div>
+                <div id="projectsList"></div>
+                <div class="buttons">
+                    <button class="btn-secondary" id="restart">← Nouvelle recherche</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let selections = {
+            public: null,
+            type: null,
+            discipline: null
+        };
+        
+        const publics = ['1er degré', 'Collège', 'Lycée'];
+        const types = ['formation', 'concours', 'science participative', 'action ponctuelle', 'projet sur l\'année', 'accompagnement', 'communication'];
+        const disciplines = ['Interdisciplinaire', 'Mathématiques', 'Sciences de la vie, de la Terre et de l\'univers', 'Physique chimie', 'Technologie et robotique'];
+        
+        // Initialisation de l'API Grist
+        grist.ready({
+            requiredAccess: 'read table',
+            columns: ['Public', 'Type_dispositif', 'Discipline', 'Nom', 'Description', 'URL']
+        });
+        
+        grist.onRecords(function(records) {
+            allData = records;
+            console.log('Données chargées:', records.length, 'projets');
+        });
+        
+        // Créer les options
+        function createOptions(container, options, key) {
+            container.innerHTML = '';
+            options.forEach(option => {
+                const div = document.createElement('div');
+                div.className = 'option';
+                div.textContent = option;
+                div.onclick = () => selectOption(div, option, key, container);
+                container.appendChild(div);
+            });
+        }
+        
+        function selectOption(element, value, key, container) {
+            // Désélectionner les autres
+            container.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            selections[key] = value;
+            
+            // Activer le bouton suivant
+            if (key === 'public') document.getElementById('next1').disabled = false;
+            if (key === 'type') document.getElementById('next2').disabled = false;
+        }
+        
+        function showStep(stepNum) {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('step' + stepNum).classList.add('active');
+            
+            // Mettre à jour la progression
+            for (let i = 1; i <= 3; i++) {
+                const dot = document.getElementById('dot' + i);
+                dot.classList.toggle('active', i === stepNum);
+            }
+        }
+        
+        function filterProjects() {
+            return allData.filter(record => {
+                const matchPublic = !selections.public || record.Public === selections.public;
+                const matchType = !selections.type || record.Type_dispositif === selections.type;
+                const matchDiscipline = !selections.discipline || record.Discipline === selections.discipline;
+                return matchPublic && matchType && matchDiscipline;
+            });
+        }
+        
+        function showResults() {
+            const filtered = filterProjects();
+            
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('results').classList.add('active');
+            
+            const countEl = document.getElementById('resultCount');
+            countEl.textContent = `${filtered.length} projet${filtered.length > 1 ? 's' : ''} trouvé${filtered.length > 1 ? 's' : ''}`;
+            
+            const listEl = document.getElementById('projectsList');
+            
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="no-results">
+                        <div class="no-results-icon">🔍</div>
+                        <p>Aucun projet ne correspond à vos critères.</p>
+                        <p style="margin-top: 8px; font-size: 14px;">Essayez de modifier vos choix.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            listEl.innerHTML = filtered.map(project => `
+                <div class="project-card">
+                    <div class="project-title">${project.Nom || 'Sans titre'}</div>
+                    <div class="project-meta">
+                        <span class="tag">${project.Public || 'N/A'}</span>
+                        <span class="tag">${project.Type_dispositif || 'N/A'}</span>
+                        <span class="tag">${project.Discipline || 'N/A'}</span>
+                    </div>
+                    <div class="project-description">${project.Description || 'Pas de description disponible'}</div>
+                    ${project.URL ? `<a href="${project.URL}" target="_blank" class="project-link">En savoir plus →</a>` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function restart() {
+            selections = { public: null, type: null, discipline: null };
+            document.querySelectorAll('.option').forEach(opt => opt.classList.remove('selected'));
+            document.getElementById('next1').disabled = true;
+            document.getElementById('next2').disabled = true;
+            document.getElementById('results').classList.remove('active');
+            showStep(1);
+        }
+        
+        // Initialiser les options
+        createOptions(document.getElementById('publicOptions'), publics, 'public');
+        createOptions(document.getElementById('typeOptions'), types, 'type');
+        createOptions(document.getElementById('disciplineOptions'), disciplines, 'discipline');
+        
+        // Gestionnaires d'événements
+        document.getElementById('next1').onclick = () => showStep(2);
+        document.getElementById('next2').onclick = () => showStep(3);
+        document.getElementById('back2').onclick = () => showStep(1);
+        document.getElementById('back3').onclick = () => showStep(2);
+        document.getElementById('submit').onclick = showResults;
+        document.getElementById('restart').onclick = restart;
+    </script>
+</body>
+</html>
