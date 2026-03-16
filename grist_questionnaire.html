@@ -383,18 +383,29 @@
                     selectionDiscipline: selections.discipline
                 });
                 
-                // Normaliser les chaînes (trim et lowercase pour comparaison)
-                const normalizeStr = (str) => str ? str.toString().trim().toLowerCase() : '';
+                // Fonction pour vérifier si une valeur est présente (gère tableaux et chaînes)
+                const contains = (fieldValue, searchValue) => {
+                    if (!searchValue) return true; // Pas de filtre = tout passe
+                    if (!fieldValue) return false; // Pas de valeur dans le champ = ne correspond pas
+                    
+                    const normalize = (str) => str.toString().trim().toLowerCase();
+                    const searchNorm = normalize(searchValue);
+                    
+                    // Si c'est un tableau (valeurs multiples dans Grist)
+                    if (Array.isArray(fieldValue)) {
+                        return fieldValue.some(val => normalize(val) === searchNorm);
+                    }
+                    
+                    // Si c'est une chaîne unique
+                    return normalize(fieldValue) === searchNorm;
+                };
                 
-                const matchPublic = !selections.public || 
-                    normalizeStr(record.Public) === normalizeStr(selections.public);
-                
-                const matchType = !selections.type || 
-                    normalizeStr(record.Type_dispositif) === normalizeStr(selections.type);
+                const matchPublic = contains(record.Public, selections.public);
+                const matchType = contains(record.Type_dispositif, selections.type);
                 
                 // Pour les concours, vérifier la discipline. Pour le reste, ignorer la discipline
-                const matchDiscipline = selections.type && normalizeStr(selections.type) === 'concours'
-                    ? (!selections.discipline || normalizeStr(record.Discipline) === normalizeStr(selections.discipline))
+                const matchDiscipline = selections.type && selections.type.toLowerCase().trim() === 'concours'
+                    ? contains(record.Discipline, selections.discipline)
                     : true;
                 
                 const match = matchPublic && matchType && matchDiscipline;
