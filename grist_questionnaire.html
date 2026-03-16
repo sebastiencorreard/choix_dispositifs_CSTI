@@ -314,13 +314,13 @@
         
         // Initialisation de l'API Grist
         grist.ready({
-            requiredAccess: 'read table',
-            columns: ['Public', 'Type_dispositif', 'Discipline', 'Nom', 'Description', 'URL']
+            requiredAccess: 'read table'
         });
         
         grist.onRecords(function(records) {
             allData = records;
-            console.log('Données chargées:', records.length, 'projets');
+            console.log('✅ Données chargées:', records.length, 'projets');
+            console.log('📋 Exemple de données:', records[0]);
         });
         
         // Créer les options
@@ -343,11 +343,24 @@
             
             // Activer le bouton suivant
             if (key === 'public') document.getElementById('next1').disabled = false;
-            if (key === 'type') document.getElementById('next2').disabled = false;
+            if (key === 'type') {
+                document.getElementById('next2').disabled = false;
+                // Si ce n'est pas un concours, passer directement aux résultats
+                if (value.toLowerCase() !== 'concours') {
+                    selections.discipline = null; // Réinitialiser la discipline
+                }
+            }
         }
         
         function showStep(stepNum) {
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            
+            // Si étape 3 mais pas un concours, aller directement aux résultats
+            if (stepNum === 3 && selections.type && selections.type.toLowerCase() !== 'concours') {
+                showResults();
+                return;
+            }
+            
             document.getElementById('step' + stepNum).classList.add('active');
             
             // Mettre à jour la progression
@@ -358,12 +371,40 @@
         }
         
         function filterProjects() {
-            return allData.filter(record => {
-                const matchPublic = !selections.public || record.Public === selections.public;
-                const matchType = !selections.type || record.Type_dispositif === selections.type;
-                const matchDiscipline = !selections.discipline || record.Discipline === selections.discipline;
-                return matchPublic && matchType && matchDiscipline;
+            console.log('🔍 Filtrage avec:', selections);
+            
+            const filtered = allData.filter(record => {
+                console.log('Comparaison record:', {
+                    recordPublic: record.Public,
+                    selectionPublic: selections.public,
+                    recordType: record.Type_dispositif,
+                    selectionType: selections.type,
+                    recordDiscipline: record.Discipline,
+                    selectionDiscipline: selections.discipline
+                });
+                
+                // Normaliser les chaînes (trim et lowercase pour comparaison)
+                const normalizeStr = (str) => str ? str.toString().trim().toLowerCase() : '';
+                
+                const matchPublic = !selections.public || 
+                    normalizeStr(record.Public) === normalizeStr(selections.public);
+                
+                const matchType = !selections.type || 
+                    normalizeStr(record.Type_dispositif) === normalizeStr(selections.type);
+                
+                // Pour les concours, vérifier la discipline. Pour le reste, ignorer la discipline
+                const matchDiscipline = selections.type && normalizeStr(selections.type) === 'concours'
+                    ? (!selections.discipline || normalizeStr(record.Discipline) === normalizeStr(selections.discipline))
+                    : true;
+                
+                const match = matchPublic && matchType && matchDiscipline;
+                console.log('Match?', match, { matchPublic, matchType, matchDiscipline });
+                
+                return match;
             });
+            
+            console.log('✅ Résultats filtrés:', filtered.length);
+            return filtered;
         }
         
         function showResults() {
@@ -383,6 +424,7 @@
                         <div class="no-results-icon">🔍</div>
                         <p>Aucun projet ne correspond à vos critères.</p>
                         <p style="margin-top: 8px; font-size: 14px;">Essayez de modifier vos choix.</p>
+                        <p style="margin-top: 12px; font-size: 12px; color: #a0aec0;">Debug: ${allData.length} projets au total</p>
                     </div>
                 `;
                 return;
@@ -392,9 +434,9 @@
                 <div class="project-card">
                     <div class="project-title">${project.Nom || 'Sans titre'}</div>
                     <div class="project-meta">
-                        <span class="tag">${project.Public || 'N/A'}</span>
-                        <span class="tag">${project.Type_dispositif || 'N/A'}</span>
-                        <span class="tag">${project.Discipline || 'N/A'}</span>
+                        ${project.Public ? `<span class="tag">${project.Public}</span>` : ''}
+                        ${project.Type_dispositif ? `<span class="tag">${project.Type_dispositif}</span>` : ''}
+                        ${project.Discipline ? `<span class="tag">${project.Discipline}</span>` : ''}
                     </div>
                     <div class="project-description">${project.Description || 'Pas de description disponible'}</div>
                     ${project.URL ? `<a href="${project.URL}" target="_blank" class="project-link">En savoir plus →</a>` : ''}
@@ -418,7 +460,14 @@
         
         // Gestionnaires d'événements
         document.getElementById('next1').onclick = () => showStep(2);
-        document.getElementById('next2').onclick = () => showStep(3);
+        document.getElementById('next2').onclick = () => {
+            // Si concours, aller à l'étape 3, sinon afficher directement les résultats
+            if (selections.type && selections.type.toLowerCase() === 'concours') {
+                showStep(3);
+            } else {
+                showResults();
+            }
+        };
         document.getElementById('back2').onclick = () => showStep(1);
         document.getElementById('back3').onclick = () => showStep(2);
         document.getElementById('submit').onclick = showResults;
